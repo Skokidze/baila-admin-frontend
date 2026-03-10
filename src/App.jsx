@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const BACKEND_URL = 'https://baila-api.onrender.com';
+const BACKEND_URL = 'https://baila-api.onrender.com/api';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('students');
