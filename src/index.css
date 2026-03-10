@@ -1,1 +1,14 @@
 @import "tailwindcss";
+
+body {
+  background-color: #ffffff;
+  color: #1a1a1a;
+  /* Добавляем немного системного сглаживания для шрифтов */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Скрываем скроллбар для красоты */
+::-webkit-scrollbar {
+  display: none;
+}
