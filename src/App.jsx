@@ -1,76 +1,178 @@
 import React, { useState, useEffect } from 'react';
+import EditLessonModal from './components/EditLessonModal';
+import AddStudentModal from './components/AddStudentModal';
+import EditStudentModal from './components/EditStudentModal';
+import StudentList from './components/StudentList';
+import CoachTab from './components/CoachTab';
+import FinanceTab from './components/FinanceTab';
+import { showAlert, showConfirm } from './utils/telegram';
+import { useAppData } from './hooks/useAppData';
+import { useBatchLessons } from './hooks/useBatchLessons';
 
-const BACKEND_URL = 'https://baila-api.onrender.com/api';
-//const BACKEND_URL = 'http://localhost:3000/api';
-
+// Если переменная окружения пустая, принудительно используем Render, а не localhost
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_BACKEND_URL : 'https://baila-api.onrender.com/api';
+const ADMIN_ID = Number(import.meta.env.VITE_ADMIN_ID) || 474108242;
+const MANAGER_ID = Number(import.meta.env.VITE_MANAGER_ID) || 83064944470;
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState(null);
+  const [userRole, setUserRole] = useState('trainer'); // 'admin' или 'trainer'
+
+  // НОВЫЙ СТЕЙТ
+  const [isAuthorized, setIsAuthorized] = useState(null); // null = проверка, true = можно, false = нельзя
+
   const [activeTab, setActiveTab] = useState('students');
-  const [studentFilter, setStudentFilter] = useState('debts');
-  const [students, setStudents] = useState([]);
-  const [coaches, setCoaches] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false); // Новый стейт для модалки добавления ученика
+  const [editingStudent, setEditingStudent] = useState(null); // Стейт для модалки настроек ученика
+
+    // Стейт для скрытия меню при открытой клавиатуре
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+
+  // --- СТЕЙТЫ И ФУНКЦИИ ДЛЯ РЕДАКТИРОВАНИЯ УРОКА ---
+  const [editingLesson, setEditingLesson] = useState(null); 
+
+  const handleEditClick = (e, lesson) => {
+    e.stopPropagation();
+    // Разбиваем строку учеников (например "Степан, Вова")
+    const studentsArr = lesson.students ? lesson.students.split(', ') : [];
+    
+    setEditingLesson({
+      id: lesson.id,
+      date: lesson.date,
+      student_1: studentsArr[0] || '',
+      student_2: studentsArr[1] || '',
+      duration: '45', // Ставим 45 по умолчанию
+      location: ''
+    });
+  };
+
+  const handleSaveEditLesson = async (updatedData) => {
+    if (!updatedData.student_1) return showAlert('Ученик 1 обязателен');
+
+    // Ищем ID учеников по их именам перед отправкой на сервер
+    const st1Obj = students.find(s => s.full_name === updatedData.student_1);
+    const st2Obj = students.find(s => s.full_name === updatedData.student_2);
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/lessons/${updatedData.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lesson_date: updatedData.date,
+          student_1: updatedData.student_1,
+          student_2: updatedData.student_2 || '',
+          student_1_id: st1Obj ? st1Obj.id : null,
+          student_2_id: st2Obj ? st2Obj.id : null,
+          duration: updatedData.duration,
+          location: updatedData.location
+        })
+      });
+
+      if (response.ok) {
+        setEditingLesson(null); // Закрываем модалку
+        fetchData(); // Обновляем списки
+      } else {
+        const err = await response.json();
+        showAlert(`Ошибка: ${err.error}`);
+      }
+    } catch (error) {
+      console.error('Ошибка при редактировании урока:', error);
+      showAlert('Ошибка при отправке данных на сервер');
+    }
+  };
+
+
   
-  // Состояния для раскрывающихся списков
-  const [expandedStudentId, setExpandedStudentId] = useState(null);
-  const [expandedCoachId, setExpandedCoachId] = useState(null);
+  // --- ПОДКЛЮЧАЕМ КАСТОМНЫЙ ХУК ---
+  const {
+    students, coaches, loading, errorMsg,
+    startDate, setStartDate, endDate, setEndDate,
+    fetchData
+  } = useAppData(BACKEND_URL);
 
-  // Вычисляем первый и последний день текущего месяца
-  const today = new Date();
-  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+  // Хук для управления формой пакетного добавления уроков
+  const { batchForm, setBatchForm, addLessonRow, updateLessonRow, removeLessonRow, handleBatchSubmit, isSubmitting } = useBatchLessons(BACKEND_URL, students, coaches, currentUser, userRole, fetchData);
 
-  const [startDate, setStartDate] = useState(firstDayOfMonth);
-  const [endDate, setEndDate] = useState(lastDayOfMonth);
+
+    useEffect(() => {
+    const handleFocusIn = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+        setIsKeyboardVisible(true);
+      }
+    };
+    const handleFocusOut = () => {
+      setIsKeyboardVisible(false);
+    };
+
+    window.addEventListener('focusin', handleFocusIn);
+    window.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      window.removeEventListener('focusin', handleFocusIn);
+      window.removeEventListener('focusout', handleFocusOut);
+    };
+  }, []);
+
 
   // Инициализация Telegram
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
-    if (tg) {
+    const user = tg?.initDataUnsafe?.user;
+
+    if (user) {
       tg.ready();
       tg.expand();
+      
+      setCurrentUser(user);
+      if (Number(user.id) === Number(ADMIN_ID)) {
+        setUserRole('admin');
+      } else if (Number(user.id) === Number(MANAGER_ID)) {
+        setUserRole('manager');
+        setActiveTab('coaches'); // Менеджера сразу кидаем на вкладку отчетов
+      }
+    } else {
+      // --- РЕЖИМ ОТЛАДКИ В БРАУЗЕРЕ ---
+      console.log('Запуск вне Telegram: включен режим отладки (Админ)');
+      setUserRole('admin');
+      setCurrentUser({ id: ADMIN_ID, first_name: 'Admin' });
+      setIsAuthorized(true);
     }
-    // Первую загрузку сделает хук снизу, поэтому отсюда fetchData() мы убрали
   }, []);
 
-  // Функция загрузки данных
-  const fetchData = async () => {
-    setLoading(true);
-    setErrorMsg('');
-    try {
-      const [studentsRes, coachesRes] = await Promise.all([
-        fetch(`${BACKEND_URL}/students`),
-        fetch(`${BACKEND_URL}/coaches?start=${startDate}&end=${endDate}`)
-      ]);
-      
-      if (!studentsRes.ok || !coachesRes.ok) throw new Error('Ошибка сервера');
-      
-      setStudents(await studentsRes.json());
-      setCoaches(await coachesRes.json());
-    } catch (error) {
-      console.error('Ошибка:', error);
-      setErrorMsg('Не удалось подключиться к бэкенду. Проверьте сервер.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ВОТ ЭТОТ ХУК: Он будет вызывать fetchData() каждый раз, когда меняются даты
+  // Загрузка данных и строгая проверка авторизации
   useEffect(() => {
-    fetchData();
-  }, [startDate, endDate]);
+    const loadAndAuthorize = async () => {
+      const result = await fetchData();
+      if (result?.loadedCoaches) {
+        if (userRole === 'admin' || userRole === 'manager') {
+          setIsAuthorized(true);
+        } else if (currentUser) {
+          const myCoachProfile = result.loadedCoaches.find(c => Number(c.telegram_id) === Number(currentUser.id));
+          if (myCoachProfile) {
+            setIsAuthorized(true);
+            setUserRole('trainer');
+            setActiveTab('coaches');
+          } else {
+            setIsAuthorized(false);
+          }
+        }
+      }
+    };
+
+    loadAndAuthorize();
+  }, [startDate, endDate, currentUser, userRole, fetchData]);
 
 
-  // Функция оплаты тренеру (НОВАЯ)
+
+
+  // API Вызовы (Финансы и Удаление)
   const handleCoachPayout = async (id, name, recommendedAmount) => {
-    const amountStr = prompt(`Оформить выплату для: ${name}\nК выплате за период: ${recommendedAmount} ₽\n\nВведите сумму (можно изменить):`, recommendedAmount);
+    const amountStr = prompt(`Оформить выплату для: ${name}\nК выплате: ${recommendedAmount} ₽\n\nВведите сумму:`, recommendedAmount);
     if (!amountStr) return;
-    
     const amount = Number(amountStr);
-    if (isNaN(amount) || amount <= 0) return alert('Неверная сумма');
-
-    const dateStr = prompt(`Укажите дату выплаты (ГГГГ-ММ-ДД):\nНапример: 2026-03-10`, new Date().toISOString().split('T')[0]);
+    if (isNaN(amount) || amount <= 0) return showAlert('Неверная сумма');
+    const dateStr = prompt(`Дата выплаты (ГГГГ-ММ-ДД):`, new Date().toISOString().split('T')[0]);
     if (!dateStr) return;
 
     try {
@@ -80,20 +182,19 @@ export default function App() {
         body: JSON.stringify({ amount, date: dateStr })
       });
       if (response.ok) {
-        alert('Выплата успешно зафиксирована!');
+        showAlert('Выплата зафиксирована!');
         fetchData();
       }
     } catch (e) {
-      alert('Ошибка при сохранении');
+      console.error('Ошибка при сохранении выплаты:', e);
+      showAlert('Ошибка при сохранении');
     }
   };
 
-
-  // Функция пополнения баланса ученика (СТАРАЯ)
-    const handleTopUp = async (id, name) => {
+  const handleTopUp = async (id, name) => {
     const amountStr = prompt(`Введите сумму пополнения для: ${name}`);
+    if (!amountStr) return;
     const amount = Number(amountStr);
-    
     if (amount > 0) {
       try {
         const response = await fetch(`${BACKEND_URL}/students/${id}/topup`, {
@@ -101,278 +202,310 @@ export default function App() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ amount })
         });
-        
         if (response.ok) {
-          alert('Баланс успешно пополнен!');
+          showAlert('Баланс пополнен!');
           fetchData();
         }
       } catch (error) {
-        alert('Ошибка при пополнении');
+        console.error('Ошибка при пополнении баланса:', error);
+        showAlert('Ошибка при пополнении');
       }
     }
   };
 
-  // Экран загрузки
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-gray-100">
-        <div className="text-xl font-semibold text-gray-600">Загрузка данных...</div>
+  const handleSetBalance = async (id, name, currentBalance) => {
+    const amountStr = prompt(`Изменить баланс для: ${name}\nТекущий: ${currentBalance} ₽\n\nНовый баланс:`, currentBalance);
+    if (amountStr === null) return; 
+    const amount = Number(amountStr);
+    if (isNaN(amount)) return showAlert('Неверная сумма');
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/students/${id}/balance`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ balance: amount })
+      });
+      if (response.ok) {
+        showAlert('Баланс изменен!');
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Ошибка при изменении баланса:', error);
+      showAlert('Ошибка при изменении баланса');
+    }
+  };
+
+  const handleDeleteLesson = (lessonId, paymentStatus) => {
+    if (paymentStatus !== 'unpaid') return showAlert('Этот урок оплачен, его нельзя удалить.');
+
+    showConfirm('Вы уверены, что хотите удалить этот урок? Это действие нельзя отменить.', async (isConfirmed) => {
+      if (!isConfirmed) return;
+      try {
+        const response = await fetch(`${BACKEND_URL}/lessons/${lessonId}`, { method: 'DELETE' });
+        if (response.ok) {
+          fetchData();
+        } else {
+          const err = await response.json();
+          showAlert(`Ошибка: ${err.error}`);
+        }
+      } catch (e) {
+        console.error('Ошибка при удалении урока:', e);
+        showAlert('Ошибка при удалении');
+      }
+    });
+  };
+
+  // --- ФУНКЦИИ УПРАВЛЕНИЯ УЧЕНИКАМИ (АДМИН) ---
+  const handleAddStudent = async (fullName, googleName, accountNumber) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/students`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: fullName, google_name: googleName, account_number: accountNumber })
+      });
+      if (response.ok) {
+        showAlert(`Ученик ${fullName} успешно добавлен!`);
+        setShowAddStudentModal(false);
+        fetchData(); // Обновляем список учеников
+      } else {
+        const err = await response.json();
+        showAlert(`Ошибка: ${err.error}`);
+      }
+    } catch (error) {
+      console.error('Ошибка при добавлении ученика:', error);
+      showAlert('Ошибка при добавлении ученика');
+    }
+  };
+
+  const handleDeleteStudent = async (studentId, studentName) => {
+    showConfirm(`Вы уверены, что хотите убрать ученика ${studentName} в архив?`, async (isConfirmed) => {
+      if (!isConfirmed) return;
+      try {
+        const response = await fetch(`${BACKEND_URL}/students/${studentId}`, { method: 'DELETE' });
+        const data = await response.json();
+        if (response.ok) {
+          showAlert(data.message || `Ученик ${studentName} убран в архив.`);
+          fetchData(); // Обновляем список учеников
+          setEditingStudent(null); // Закрываем модалку
+        } else {
+          showAlert(`Ошибка: ${data.error}`);
+        }
+      } catch (e) {
+      console.error('Ошибка при архивации ученика:', e);
+        showAlert('Ошибка при архивации ученика');
+      }
+    });
+  };
+
+  const handleUpdateStudentName = async (studentId, newName) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/students/${studentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: newName })
+      });
+      if (response.ok) {
+        showAlert('Данные ученика успешно изменены!');
+        fetchData();
+        setEditingStudent(prev => ({ ...prev, full_name: newName }));
+      } else {
+        const err = await response.json();
+        showAlert(`Ошибка: ${err.error}`);
+      }
+    } catch (error) {
+      console.error('Ошибка при изменении имени:', error);
+      showAlert('Ошибка при изменении имени');
+    }
+  };
+
+  const handleAddStudentAccount = async (studentId, accountNumber) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/students/${studentId}/accounts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ account_number: accountNumber })
+      });
+      if (response.ok) {
+        showAlert('Счет успешно добавлен!');
+      } else {
+        const err = await response.json();
+        showAlert(`Ошибка: ${err.error}`);
+      }
+    } catch (error) {
+      console.error('Ошибка при добавлении счета:', error);
+      showAlert('Ошибка при добавлении счета');
+    }
+  };
+
+  // --- ЭКРАНЫ ЗАГРУЗКИ ---
+  if (loading) return (
+    <div className="flex h-screen items-center justify-center bg-[#fafafa]">
+      <div className="text-sm font-medium text-gray-500 flex flex-col items-center gap-3">
+        <div className="w-5 h-5 border-2 border-gray-300 border-t-black rounded-full animate-spin"></div>
+        Загрузка...
       </div>
-    );
-  }
+    </div>
+  );
 
-  // Экран ошибки бэкенда
-  if (errorMsg) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center bg-gray-100 p-4 text-center">
-        <div className="text-red-500 text-xl font-bold mb-2">Ошибка</div>
-        <p className="text-gray-700 mb-4">{errorMsg}</p>
-        <button onClick={fetchData} className="bg-blue-500 text-white px-4 py-2 rounded-lg">Попробовать снова</button>
+  if (errorMsg) return (
+    <div className="flex h-screen flex-col items-center justify-center bg-[#fafafa] p-6 text-center">
+      <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4">
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
       </div>
-    );
-  }
+      <div className="text-gray-900 font-semibold mb-2">Проблема с подключением</div>
+      <p className="text-gray-500 text-sm mb-6 max-w-xs">{errorMsg}</p>
+      <button onClick={fetchData} className="bg-black text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors">
+        Попробовать снова
+      </button>
+    </div>
+  );
 
-  // ... (верхняя часть кода с fetchData остается без изменений) ...
+    // --- ЭКРАН ОТКАЗА В ДОСТУПЕ ---
+  if (isAuthorized === false) return (
+    <div className="flex h-screen flex-col items-center justify-center bg-[#fafafa] p-6 text-center">
+      <div className="w-16 h-16 bg-gray-200 text-gray-400 rounded-full flex items-center justify-center mb-6">
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+        </svg>
+      </div>
+      <h2 className="text-xl font-bold text-gray-900 mb-2">Доступ закрыт</h2>
+      <p className="text-gray-500 text-sm max-w-xs mb-8">
+        Вашего Telegram ID нет в базе данных сотрудников. Обратитесь к администратору для получения доступа.
+      </p>
+      {currentUser && (
+        <div className="bg-white px-4 py-3 border border-gray-200 rounded-xl text-xs text-gray-400">
+          Ваш ID: <span className="font-mono font-bold text-gray-800">{currentUser.id}</span>
+        </div>
+      )}
+    </div>
+  );
 
-    // Основной интерфейс (стиль Notion)
+  // --- ОСНОВНОЙ ИНТЕРФЕЙС ---
   return (
     <div className="min-h-screen bg-[#fafafa] text-[#111] font-sans pb-24">
       <div className="max-w-md mx-auto px-5 py-6 space-y-6">
         
-         {/* ВКЛАДКА УЧЕНИКОВ */}
-        {activeTab === 'students' && (
-          <div className="animate-fade-in">
-            <h1 className="text-3xl font-bold mb-4 tracking-tight">Ученики</h1>
-            
-            {/* ФИЛЬТРЫ: ДОЛГИ / БАЛАНСЫ */}
-            <div className="flex gap-2 mb-6">
-              <button 
-                onClick={() => setStudentFilter('debts')}
-                className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
-                  studentFilter === 'debts' 
-                  ? 'bg-red-50 text-red-600 border border-red-100' 
-                  : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                Должники
-              </button>
-              <button 
-                onClick={() => setStudentFilter('balances')}
-                className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
-                  studentFilter === 'balances' 
-                  ? 'bg-green-50 text-green-700 border border-green-100' 
-                  : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'
-                }`}
-              >
-                С балансом
-              </button>
-            </div>
-
-            {/* СПИСОК УЧЕНИКОВ С ФИЛЬТРАЦИЕЙ */}
-            <div className="space-y-4">
-              {students
-                .filter(student => {
-                  // Логика фильтрации
-                  if (studentFilter === 'debts') return Number(student.unpaid_debt) > 0;
-                  if (studentFilter === 'balances') return Number(student.balance) > 0;
-                  return false;
-                })
-                .map(student => (
-                <div key={student.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-sm transition-shadow">
-                  
-                  {/* Основная часть карточки */}
-                  <div className="p-5">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="font-semibold text-lg text-gray-900">{student.full_name}</h3>
-                      {studentFilter === 'balances' && (
-                        <p className="font-medium text-lg tracking-tight text-green-600">+{student.balance} ₽</p>
-                      )}
-                    </div>
-                    
-                    <div className="flex justify-between items-center pt-2">
-                      {Number(student.unpaid_debt) > 0 ? (
-                        <button 
-                          onClick={() => setExpandedStudentId(expandedStudentId === student.id ? null : student.id)}
-                          className="inline-flex items-center px-2.5 py-1 rounded bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 transition-colors"
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-2 animate-pulse"></span>
-                          Долг: {student.unpaid_debt} ₽
-                          <svg className={`w-3 h-3 ml-1 transform transition-transform ${expandedStudentId === student.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </button>
-                      ) : (
-                        <div className="text-xs text-gray-400">Всё оплачено</div>
-                      )}
-                      
-                      <button 
-                        onClick={() => handleTopUp(student.id, student.full_name)}
-                        className="px-4 py-1.5 rounded-lg text-sm font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 active:bg-gray-100 transition-colors"
-                      >
-                        Пополнить
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Раскрывающийся список уроков */}
-                  {expandedStudentId === student.id && student.debt_details && student.debt_details.length > 0 && (
-                    <div className="bg-gray-50 border-t border-gray-100 p-4 animate-fade-in">
-                      <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Неоплаченные занятия:</p>
-                      <div className="space-y-2">
-                        {student.debt_details.map((lesson, index) => (
-                          <div key={index} className="flex justify-between items-center text-sm bg-white p-2 rounded border border-gray-100">
-                            <div>
-                              <p className="font-medium text-gray-800">
-                                {new Date(lesson.lesson_date).toLocaleDateString('ru-RU')}
-                              </p>
-                              <p className="text-xs text-gray-500">Тренер: {lesson.trainer_name}</p>
-                            </div>
-                            <span className="font-bold text-gray-700">{lesson.debt_amount} ₽</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                </div>
-              ))}
-              
-              {/* Сообщение, если список пуст */}
-              {students.filter(s => studentFilter === 'debts' ? Number(s.unpaid_debt) > 0 : Number(s.balance) > 0).length === 0 && (
-                <div className="text-center py-10 bg-white border border-dashed border-gray-200 rounded-xl">
-                  <p className="text-gray-500 text-sm">
-                    {studentFilter === 'debts' ? 'Нет учеников с долгами' : 'Нет учеников с положительным балансом'}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+        {/* ========================================== */}
+        {/* ВКЛАДКА УЧЕНИКОВ (ТОЛЬКО ДЛЯ АДМИНА) */}
+        {/* ========================================== */}
+        {activeTab === 'students' && userRole === 'admin' && (
+          <StudentList
+            students={students}
+            startDate={startDate}
+            setStartDate={setStartDate}
+            endDate={endDate}
+            setEndDate={setEndDate}
+            userRole={userRole} // Передаем роль для отображения кнопок
+            setShowAddStudentModal={setShowAddStudentModal} // Передаем функцию для открытия модалки
+            setEditingStudent={setEditingStudent} // Передаем функцию открытия модалки настроек
+          />
         )}
 
-
-
+        {/* ========================================== */}
         {/* ВКЛАДКА ТРЕНЕРОВ */}
-        {activeTab === 'coaches' && (
-          <div className="animate-fade-in">
-            <h1 className="text-3xl font-bold mb-6 tracking-tight">Тренеры</h1>
-            
-            {/* ФИЛЬТР ДАТ */}
-            <div className="flex gap-2 mb-6 bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-              <div className="flex-1">
-                <label className="block text-xs text-gray-500 mb-1 font-medium">Период с</label>
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} 
-                       className="w-full text-sm outline-none bg-transparent font-medium cursor-pointer"/>
-              </div>
-              <div className="w-px bg-gray-200"></div>
-              <div className="flex-1 pl-2">
-                <label className="block text-xs text-gray-500 mb-1 font-medium">по</label>
-                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} 
-                       className="w-full text-sm outline-none bg-transparent font-medium cursor-pointer"/>
-              </div>
-            </div>
+        {/* ========================================== */}
+          {/* Тренеры / Отчеты */}
+          {activeTab === 'coaches' && (
+          <CoachTab
+            userRole={userRole}
+            currentUser={currentUser}
+            coaches={coaches}
+            students={students}
+            startDate={startDate}
+            setStartDate={setStartDate}
+            endDate={endDate}
+            setEndDate={setEndDate}
+            handleCoachPayout={handleCoachPayout}
+            handleEditClick={handleEditClick}
+            handleDeleteLesson={handleDeleteLesson}
+            batchForm={batchForm}
+            setBatchForm={setBatchForm}
+            handleBatchSubmit={handleBatchSubmit}
+            addLessonRow={addLessonRow}
+            updateLessonRow={updateLessonRow}
+            removeLessonRow={removeLessonRow}
+            isSubmitting={isSubmitting}
+          />
+        )}
 
-            {coaches.length === 0 ? <p className="text-gray-400 text-sm">В этом периоде нет записей</p> : null}
-            
-            <div className="space-y-4">
-              {coaches.map(coach => (
-                <div key={coach.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-sm transition-shadow">
-                  
-                  {/* Основная инфа */}
-                  <div className="p-5 cursor-pointer" onClick={() => setExpandedCoachId(expandedCoachId === coach.id ? null : coach.id)}>
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="font-semibold text-lg text-gray-900">{coach.full_name}</h3>
-                      <svg className={`w-4 h-4 text-gray-400 transform transition-transform ${expandedCoachId === coach.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </div>
-                    
-                    <div className="flex gap-4 mb-4">
-                      <div className="flex-1">
-                        <p className="text-xs text-gray-500 mb-1">Начислено</p>
-                        <p className="font-medium text-gray-900">{coach.total_earned} ₽</p>
-                      </div>
-                      <div className="w-px bg-gray-200"></div>
-                      <div className="flex-1">
-                        <p className="text-xs text-gray-500 mb-1">Выплачено</p>
-                        <p className="font-medium text-gray-900">{coach.total_paid} ₽</p>
-                      </div>
-                    </div>
-                    
-                    <div className="border-t border-gray-100 pt-3 flex justify-between items-center">
-                      <p className="text-sm font-medium text-gray-500">К выплате</p>
-                      <p className={`font-semibold text-lg ${coach.balance_due > 0 ? 'text-black' : 'text-gray-400'}`}>
-                        {coach.balance_due} ₽
-                      </p>
-                    </div>
-                  </div>
+        {/* ========================================== */}
+        {/* ВКЛАДКА ФИНАНСОВ (ТОЛЬКО ДЛЯ АДМИНА) */}
+        {/* ========================================== */}
+        {activeTab === 'finance' && userRole === 'admin' && (
+          <FinanceTab
+            BACKEND_URL={BACKEND_URL}
+            startDate={startDate}
+            setStartDate={setStartDate}
+            endDate={endDate}
+            setEndDate={setEndDate}
+          />
+        )}
 
-                  {/* Раскрывающийся список уроков */}
-                  {expandedCoachId === coach.id && (
-                    <div className="bg-[#fafafa] border-t border-gray-100 p-4 animate-fade-in">
-                      
-                      {coach.balance_due > 0 && (
-                        <div className="mb-5">
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleCoachPayout(coach.id, coach.full_name, coach.balance_due); }}
-                            className="w-full py-2.5 bg-white border border-gray-300 text-gray-800 text-sm font-medium rounded-lg hover:bg-gray-50 active:bg-gray-100 transition-colors shadow-sm"
-                          >
-                            Зафиксировать выплату
-                          </button>
-                        </div>
-                      )}
+      </div>
 
-                      {coach.lessons && coach.lessons.length > 0 && (
-                        <div className="mb-4">
-                          <p className="text-[11px] font-semibold text-gray-400 mb-2 uppercase tracking-widest">Проведенные занятия ({coach.lessons.length})</p>
-                          <div className="space-y-2">
-                            {coach.lessons.map((lesson, idx) => (
-                              <div key={idx} className="flex justify-between items-center text-sm bg-white p-2.5 rounded-lg border border-gray-200 shadow-sm">
-                                <div>
-                                  <p className="font-medium text-gray-800">{new Date(lesson.date).toLocaleDateString('ru-RU')}</p>
-                                  <p className="text-xs text-gray-500 mt-0.5">{lesson.students}</p>
-                                </div>
-                                <span className="font-semibold text-gray-700">+{lesson.salary} ₽</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {coach.payouts && coach.payouts.length > 0 && (
-                        <div>
-                          <p className="text-[11px] font-semibold text-gray-400 mb-2 uppercase tracking-widest">История выплат</p>
-                          <div className="space-y-2">
-                            {coach.payouts.map((payout, idx) => (
-                              <div key={idx} className="flex justify-between items-center text-sm bg-white p-2.5 rounded-lg border border-gray-200 shadow-sm">
-                                <p className="font-medium text-gray-800">{new Date(payout.date).toLocaleDateString('ru-RU')}</p>
-                                <span className="font-semibold text-gray-500">-{payout.amount} ₽</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                    </div>
-                  )}
-
-                </div>
-              ))}
-            </div>
+        {/* ========================================== */}
+        {/* НИЖНЯЯ ПАНЕЛЬ НАВИГАЦИИ (СКРЫВАЕТСЯ ПРИ ВВОДЕ ТЕКСТА) */}
+        {/* ========================================== */}
+        {!isKeyboardVisible && (
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-xs bg-white border border-gray-200 rounded-full shadow-lg flex justify-between px-2 py-2 z-50">
+            {userRole === 'admin' && (
+              <button 
+                className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${activeTab === 'students' ? 'bg-gray-100 text-black' : 'text-gray-500 hover:text-gray-800'}`} 
+                onClick={() => setActiveTab('students')}
+              >
+                Ученики
+              </button>
+            )}
+            <button 
+              className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${activeTab === 'coaches' ? 'bg-gray-100 text-black' : 'text-gray-500 hover:text-gray-800'}`} 
+              onClick={() => setActiveTab('coaches')}
+            >
+              {['admin', 'manager'].includes(userRole) ? 'Тренеры' : 'Мои уроки'}
+            </button>
+            {userRole === 'admin' && (
+              <button 
+                className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${activeTab === 'finance' ? 'bg-gray-100 text-black' : 'text-gray-500 hover:text-gray-800'}`} 
+                onClick={() => setActiveTab('finance')}
+              >
+                Финансы
+              </button>
+            )}
           </div>
         )}
-      </div>
 
-      {/* НАВИГАЦИЯ (Нижнее меню в стиле Notion) */}
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-xs bg-white border border-gray-200 rounded-full shadow-lg flex justify-between px-2 py-2">
-        <button 
-          className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${activeTab === 'students' ? 'bg-gray-100 text-black' : 'text-gray-500 hover:text-gray-800'}`}
-          onClick={() => setActiveTab('students')}
-        >
-          Ученики
-        </button>
-        <button 
-          className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${activeTab === 'coaches' ? 'bg-gray-100 text-black' : 'text-gray-500 hover:text-gray-800'}`}
-          onClick={() => setActiveTab('coaches')}
-        >
-          Тренеры
-        </button>
-      </div>
+
+
+      {/* МОДАЛЬНОЕ ОКНО РЕДАКТИРОВАНИЯ УРОКА */}
+      {editingLesson && (
+        <EditLessonModal
+          initialData={editingLesson}
+          students={students}
+          onClose={() => setEditingLesson(null)}
+          onSave={handleSaveEditLesson}
+        />
+      )}
+      
+      {/* Модальное окно настроек/архивации ученика */}
+      {editingStudent && (
+        <EditStudentModal
+          student={editingStudent}
+          onClose={() => setEditingStudent(null)}
+          onArchive={handleDeleteStudent}
+          onSetBalance={handleSetBalance}
+          onTopUp={handleTopUp}
+          onUpdateName={handleUpdateStudentName}
+          onAddAccount={handleAddStudentAccount}
+        />
+      )}
+
+      {/* Модальное окно добавления ученика */}
+      {showAddStudentModal && (
+        <AddStudentModal
+          onClose={() => setShowAddStudentModal(false)}
+          onSave={handleAddStudent}
+        />
+      )}
+
     </div>
   );
 }
