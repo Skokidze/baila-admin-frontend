@@ -11,7 +11,7 @@ export function useBatchLessons(BACKEND_URL, students, coaches, currentUser, use
   const [batchForm, setBatchForm] = useState({
     trainer: getInitialTrainer(),
     lesson_date: new Date().toISOString().split('T')[0],
-    rows: [{ id: Date.now(), student_1: '', student_2: '', duration: '45', location: 'Черемушки', search1Open: false, search2Open: false }]
+    rows: [{ id: Date.now(), student_1: '', student_2: '', duration: '45', location: 'Черемушки', is_cash_1: false, is_cash_2: false, search1Open: false, search2Open: false }]
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -26,7 +26,7 @@ export function useBatchLessons(BACKEND_URL, students, coaches, currentUser, use
   const addLessonRow = () => {
     setBatchForm(prev => ({
       ...prev,
-      rows: [...prev.rows, { id: Date.now(), student_1: '', student_2: '', duration: '45', location: 'Черемушки', search1Open: false, search2Open: false }]
+      rows: [...prev.rows, { id: Date.now(), student_1: '', student_2: '', duration: '45', location: 'Черемушки', is_cash_1: false, is_cash_2: false, search1Open: false, search2Open: false }]
     }));
   };
 
@@ -89,7 +89,7 @@ export function useBatchLessons(BACKEND_URL, students, coaches, currentUser, use
         setBatchForm({
           trainer: getInitialTrainer(),
           lesson_date: new Date().toISOString().split('T')[0],
-          rows: [{ id: Date.now(), student_1: '', student_2: '', duration: '45', location: 'Черемушки', search1Open: false, search2Open: false }]
+          rows: [{ id: Date.now(), student_1: '', student_2: '', duration: '45', location: 'Черемушки', is_cash_1: false, is_cash_2: false, search1Open: false, search2Open: false }]
         });
         fetchData();
         if (onSuccess) onSuccess();

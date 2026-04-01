@@ -4,7 +4,7 @@ import AddStudentModal from './components/AddStudentModal';
 import EditStudentModal from './components/EditStudentModal';
 import StudentList from './components/StudentList';
 import CoachTab from './components/CoachTab';
-import FinanceTab from './components/FinanceTab';
+import MainTab from './components/MainTab';
 import { showAlert, showConfirm } from './utils/telegram';
 import { useAppData } from './hooks/useAppData';
 import { useBatchLessons } from './hooks/useBatchLessons';
@@ -21,7 +21,7 @@ export default function App() {
   // НОВЫЙ СТЕЙТ
   const [isAuthorized, setIsAuthorized] = useState(null); // null = проверка, true = можно, false = нельзя
 
-  const [activeTab, setActiveTab] = useState('students');
+  const [activeTab, setActiveTab] = useState('main');
   const [showAddStudentModal, setShowAddStudentModal] = useState(false); // Новый стейт для модалки добавления ученика
   const [editingStudent, setEditingStudent] = useState(null); // Стейт для модалки настроек ученика
 
@@ -42,8 +42,10 @@ export default function App() {
       date: lesson.date,
       student_1: studentsArr[0] || '',
       student_2: studentsArr[1] || '',
-      duration: '45', // Ставим 45 по умолчанию
-      location: ''
+      duration: lesson.duration || '45',
+      location: lesson.location || '',
+      is_cash_1: lesson.is_cash_1 || false,
+      is_cash_2: lesson.is_cash_2 || false
     });
   };
 
@@ -65,7 +67,9 @@ export default function App() {
           student_1_id: st1Obj ? st1Obj.id : null,
           student_2_id: st2Obj ? st2Obj.id : null,
           duration: updatedData.duration,
-          location: updatedData.location
+          location: updatedData.location,
+          is_cash_1: updatedData.is_cash_1,
+          is_cash_2: updatedData.is_cash_2
         })
       });
 
@@ -113,7 +117,6 @@ export default function App() {
       window.removeEventListener('focusout', handleFocusOut);
     };
   }, []);
-
 
   // Инициализация Telegram
   useEffect(() => {
@@ -233,6 +236,27 @@ export default function App() {
       console.error('Ошибка при изменении баланса:', error);
       showAlert('Ошибка при изменении баланса');
     }
+  };
+
+  const handlePayAllDebts = async () => {
+    showConfirm(`Вы уверены, что хотите обновить балансы всех учеников?`, async (isConfirmed) => {
+      if (!isConfirmed) return;
+      try {
+        const response = await fetch(`${BACKEND_URL}/pay-unpaid-lessons`, {
+          method: 'POST'
+        });
+        if (response.ok) {
+          showAlert('Балансы успешно обновлены!');
+          fetchData();
+        } else {
+          const err = await response.json();
+          showAlert(`Ошибка: ${err.error}`);
+        }
+      } catch (error) {
+        console.error('Ошибка при списании долгов:', error);
+        showAlert('Ошибка при обновлении балансов');
+      }
+    });
   };
 
   const handleDeleteLesson = (lessonId, paymentStatus) => {
@@ -389,16 +413,17 @@ export default function App() {
         {/* ВКЛАДКА УЧЕНИКОВ (ТОЛЬКО ДЛЯ АДМИНА) */}
         {/* ========================================== */}
         {activeTab === 'students' && userRole === 'admin' && (
-          <StudentList
-            students={students}
-            startDate={startDate}
-            setStartDate={setStartDate}
-            endDate={endDate}
-            setEndDate={setEndDate}
-            userRole={userRole} // Передаем роль для отображения кнопок
-            setShowAddStudentModal={setShowAddStudentModal} // Передаем функцию для открытия модалки
-            setEditingStudent={setEditingStudent} // Передаем функцию открытия модалки настроек
-          />
+          <div className="space-y-4">
+            <StudentList
+              students={students}
+              startDate={startDate}
+              setStartDate={setStartDate}
+              endDate={endDate}
+              setEndDate={setEndDate}
+              userRole={userRole}
+              setEditingStudent={setEditingStudent}
+            />
+          </div>
         )}
 
         {/* ========================================== */}
@@ -429,15 +454,13 @@ export default function App() {
         )}
 
         {/* ========================================== */}
-        {/* ВКЛАДКА ФИНАНСОВ (ТОЛЬКО ДЛЯ АДМИНА) */}
+        {/* ГЛАВНАЯ ВКЛАДКА (ТОЛЬКО ДЛЯ АДМИНА) */}
         {/* ========================================== */}
-        {activeTab === 'finance' && userRole === 'admin' && (
-          <FinanceTab
+        {activeTab === 'main' && userRole === 'admin' && (
+          <MainTab
             BACKEND_URL={BACKEND_URL}
-            startDate={startDate}
-            setStartDate={setStartDate}
-            endDate={endDate}
-            setEndDate={setEndDate}
+            handlePayAllDebts={handlePayAllDebts}
+            setShowAddStudentModal={setShowAddStudentModal}
           />
         )}
 
@@ -448,6 +471,14 @@ export default function App() {
         {/* ========================================== */}
         {!isKeyboardVisible && (
           <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[90%] max-w-xs bg-white border border-gray-200 rounded-full shadow-lg flex justify-between px-2 py-2 z-50">
+            {userRole === 'admin' && (
+              <button 
+                className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${activeTab === 'main' ? 'bg-gray-100 text-black' : 'text-gray-500 hover:text-gray-800'}`} 
+                onClick={() => setActiveTab('main')}
+              >
+                Главная
+              </button>
+            )}
             {userRole === 'admin' && (
               <button 
                 className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${activeTab === 'students' ? 'bg-gray-100 text-black' : 'text-gray-500 hover:text-gray-800'}`} 
@@ -462,14 +493,6 @@ export default function App() {
             >
               {['admin', 'manager'].includes(userRole) ? 'Тренеры' : 'Мои уроки'}
             </button>
-            {userRole === 'admin' && (
-              <button 
-                className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${activeTab === 'finance' ? 'bg-gray-100 text-black' : 'text-gray-500 hover:text-gray-800'}`} 
-                onClick={() => setActiveTab('finance')}
-              >
-                Финансы
-              </button>
-            )}
           </div>
         )}
 

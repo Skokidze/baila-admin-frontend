@@ -311,6 +311,20 @@ export default function CoachTab({
                           </div>
                         )}
                       </div>
+                      
+                      {row.student_1 && (
+                        <div className="pt-2">
+                          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={row.is_cash_1 || false}
+                              onChange={e => updateLessonRow(row.id, 'is_cash_1', e.target.checked)}
+                              className="w-4 h-4 rounded text-black border-gray-300 focus:ring-black"
+                            />
+                            Оплата наличными
+                          </label>
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -338,6 +352,20 @@ export default function CoachTab({
                           </div>
                         )}
                       </div>
+                      
+                      {row.student_2 && (
+                        <div className="pt-2">
+                          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={row.is_cash_2 || false}
+                              onChange={e => updateLessonRow(row.id, 'is_cash_2', e.target.checked)}
+                              className="w-4 h-4 rounded text-black border-gray-300 focus:ring-black"
+                            />
+                            Оплата наличными
+                          </label>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

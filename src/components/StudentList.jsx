@@ -7,7 +7,6 @@ export default function StudentList({
   endDate,
   setEndDate,
   userRole, // Новое: роль пользователя
-  setShowAddStudentModal, // Новое: функция для открытия модалки
   setEditingStudent // Принимаем функцию открытия модалки
 }) {
   // Эти стейты нужны только внутри списка учеников, поэтому мы убрали их из App.jsx
@@ -31,12 +30,6 @@ export default function StudentList({
         </div>
       </div>
 
-      {userRole === 'admin' && (
-        <button onClick={() => setShowAddStudentModal(true)} className="w-full py-2.5 bg-black text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors shadow-sm mb-4">
-          Добавить ученика
-        </button>
-      )}
-
       <div className="mb-6 space-y-3">
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -53,6 +46,7 @@ export default function StudentList({
         <div className="flex bg-gray-100 p-1 rounded-xl">
           <button onClick={() => {setStudentFilter('all'); setSearchStudent('');}} className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${studentFilter === 'all' && !searchStudent ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>Все</button>
           <button onClick={() => {setStudentFilter('debts'); setSearchStudent('');}} className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${studentFilter === 'debts' && !searchStudent ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>Должники</button>
+          <button onClick={() => {setStudentFilter('overpay'); setSearchStudent('');}} className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${studentFilter === 'overpay' && !searchStudent ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>Переплата</button>
         </div>
       </div>
 
@@ -61,13 +55,10 @@ export default function StudentList({
           .filter(student => {
             if (searchStudent) return student.full_name.toLowerCase().includes(searchStudent.toLowerCase());
             if (studentFilter === 'debts') return Number(student.unpaid_debt) > 0;
+            if (studentFilter === 'overpay') return Number(student.balance) > 0;
             return true;
           })
-          .sort((a, b) => { // Сортировка: сначала должники, потом по имени
-            const debtA = Number(a.unpaid_debt) > 0 ? 1 : 0;
-            const debtB = Number(b.unpaid_debt) > 0 ? 1 : 0;
-            return debtB - debtA || a.full_name.localeCompare(b.full_name);
-          })
+          .sort((a, b) => a.full_name.localeCompare(b.full_name)) // Строгая сортировка по алфавиту
           .map(student => (
           <div key={student.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-sm transition-shadow">
             <div className="p-5 cursor-pointer" onClick={() => setExpandedStudentId(expandedStudentId === student.id ? null : student.id)}>
@@ -155,6 +146,7 @@ export default function StudentList({
         {students.filter(s => {
           if (searchStudent) return s.full_name.toLowerCase().includes(searchStudent.toLowerCase());
           if (studentFilter === 'debts') return Number(s.unpaid_debt) > 0;
+          if (studentFilter === 'overpay') return Number(s.balance) > 0;
           return true;
         }).length === 0 && (
           <p className="text-gray-400 text-sm text-center mt-10">Ничего не найдено</p>

@@ -55,6 +55,19 @@ export default function EditLessonModal({ initialData, students, onClose, onSave
                 <option value="" disabled>Выбрать</option>
                 {students.map(s => <option key={s.id} value={s.full_name}>{s.full_name}</option>)}
               </select>
+              {formData.student_1 && (
+                <div className="pt-2">
+                  <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_cash_1 || false}
+                      onChange={e => setFormData({...formData, is_cash_1: e.target.checked})}
+                      className="w-4 h-4 rounded text-black border-gray-300 focus:ring-black"
+                    />
+                    Оплата наличными
+                  </label>
+                </div>
+              )}
             </div>
 
             <div>
@@ -63,6 +76,19 @@ export default function EditLessonModal({ initialData, students, onClose, onSave
                 <option value="">Нет (Соло)</option>
                 {students.filter(s => s.full_name !== formData.student_1).map(s => <option key={s.id} value={s.full_name}>{s.full_name}</option>)}
               </select>
+              {formData.student_2 && (
+                <div className="pt-2">
+                  <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_cash_2 || false}
+                      onChange={e => setFormData({...formData, is_cash_2: e.target.checked})}
+                      className="w-4 h-4 rounded text-black border-gray-300 focus:ring-black"
+                    />
+                    Оплата наличными
+                  </label>
+                </div>
+              )}
             </div>
 
             <div className="pt-4">
