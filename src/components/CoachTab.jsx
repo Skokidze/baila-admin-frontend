@@ -288,32 +288,31 @@ export default function CoachTab({
 
                     <div>
                       <label className="block text-[10px] font-semibold text-gray-500 mb-1 uppercase">Ученик 1</label>
-                      <div className="relative">
-                        <input 
-                          type="text" required placeholder="Начните вводить..." value={row.student_1} 
-                          onChange={e => updateLessonRow(row.id, 'student_1', e.target.value)} onFocus={() => updateLessonRow(row.id, 'search1Open', true)} onBlur={() => setTimeout(() => updateLessonRow(row.id, 'search1Open', false), 200)}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-3 pr-8 py-2 text-[16px] outline-none focus:border-black text-gray-700 caret-black"
-                        />
-                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                          <svg className={`w-4 h-4 text-gray-400 transition-transform ${row.search1Open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-                        {row.search1Open && (
-                          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto animate-fade-in">
-                            {students.filter(s => s.full_name.toLowerCase().includes(row.student_1.toLowerCase())).length > 0 ? (
-                              students.filter(s => s.full_name.toLowerCase().includes(row.student_1.toLowerCase())).map(s => (
-                                <div key={s.id} onMouseDown={(e) => { e.preventDefault(); updateLessonRow(row.id, 'student_1', s.full_name); updateLessonRow(row.id, 'search1Open', false); }} className="px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 cursor-pointer border-b border-gray-50 last:border-0">
-                                  {s.full_name}
-                                </div>
-                              ))
-                            ) : (
-                              <div className="px-3 py-3 text-sm text-gray-400 text-center">Не найден</div>
-                            )}
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <input 
+                            type="text" required placeholder="Начните вводить..." value={row.student_1} 
+                            onChange={e => updateLessonRow(row.id, 'student_1', e.target.value)} onFocus={() => updateLessonRow(row.id, 'search1Open', true)} onBlur={() => setTimeout(() => updateLessonRow(row.id, 'search1Open', false), 200)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-3 pr-8 py-2 text-[16px] outline-none focus:border-black text-gray-700 caret-black"
+                          />
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <svg className={`w-4 h-4 text-gray-400 transition-transform ${row.search1Open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                           </div>
-                        )}
-                      </div>
-                      
-                      {row.student_1 && (
-                        <div className="pt-2">
+                          {row.search1Open && (
+                            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto animate-fade-in">
+                              {students.filter(s => s.full_name.toLowerCase().includes(row.student_1.toLowerCase())).length > 0 ? (
+                                students.filter(s => s.full_name.toLowerCase().includes(row.student_1.toLowerCase())).map(s => (
+                                  <div key={s.id} onMouseDown={(e) => { e.preventDefault(); updateLessonRow(row.id, 'student_1', s.full_name); updateLessonRow(row.id, 'search1Open', false); }} className="px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 cursor-pointer border-b border-gray-50 last:border-0">
+                                    {s.full_name}
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="px-3 py-3 text-sm text-gray-400 text-center">Не найден</div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        {row.student_1 && (
                           <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
                             <input
                               type="checkbox"
@@ -323,38 +322,37 @@ export default function CoachTab({
                             />
                             Оплата наличными
                           </label>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-[10px] font-semibold text-gray-500 mb-1 uppercase">Ученик 2 (Опционально)</label>
-                      <div className="relative">
-                        <input 
-                          type="text" placeholder="Начните вводить..." value={row.student_2} 
-                          onChange={e => updateLessonRow(row.id, 'student_2', e.target.value)} onFocus={() => updateLessonRow(row.id, 'search2Open', true)} onBlur={() => setTimeout(() => updateLessonRow(row.id, 'search2Open', false), 200)}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-3 pr-8 py-2 text-[16px] outline-none focus:border-black text-gray-700 caret-black"
-                        />
-                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                          <svg className={`w-4 h-4 text-gray-400 transition-transform ${row.search2Open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </div>
-                        {row.search2Open && (
-                          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto animate-fade-in">
-                            {students.filter(s => s.full_name !== row.student_1 && s.full_name.toLowerCase().includes(row.student_2.toLowerCase())).length > 0 ? (
-                              students.filter(s => s.full_name !== row.student_1 && s.full_name.toLowerCase().includes(row.student_2.toLowerCase())).map(s => (
-                                <div key={s.id} onMouseDown={(e) => { e.preventDefault(); updateLessonRow(row.id, 'student_2', s.full_name); updateLessonRow(row.id, 'search2Open', false); }} className="px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 cursor-pointer border-b border-gray-50 last:border-0">
-                                  {s.full_name}
-                                </div>
-                              ))
-                            ) : (
-                              <div className="px-3 py-3 text-sm text-gray-400 text-center">Не найден</div>
-                            )}
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <input 
+                            type="text" placeholder="Начните вводить..." value={row.student_2} 
+                            onChange={e => updateLessonRow(row.id, 'student_2', e.target.value)} onFocus={() => updateLessonRow(row.id, 'search2Open', true)} onBlur={() => setTimeout(() => updateLessonRow(row.id, 'search2Open', false), 200)}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-lg pl-3 pr-8 py-2 text-[16px] outline-none focus:border-black text-gray-700 caret-black"
+                          />
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <svg className={`w-4 h-4 text-gray-400 transition-transform ${row.search2Open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                           </div>
-                        )}
-                      </div>
-                      
-                      {row.student_2 && (
-                        <div className="pt-2">
+                          {row.search2Open && (
+                            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto animate-fade-in">
+                              {students.filter(s => s.full_name !== row.student_1 && s.full_name.toLowerCase().includes(row.student_2.toLowerCase())).length > 0 ? (
+                                students.filter(s => s.full_name !== row.student_1 && s.full_name.toLowerCase().includes(row.student_2.toLowerCase())).map(s => (
+                                  <div key={s.id} onMouseDown={(e) => { e.preventDefault(); updateLessonRow(row.id, 'student_2', s.full_name); updateLessonRow(row.id, 'search2Open', false); }} className="px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-100 active:bg-gray-200 cursor-pointer border-b border-gray-50 last:border-0">
+                                    {s.full_name}
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="px-3 py-3 text-sm text-gray-400 text-center">Не найден</div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        {row.student_2 && (
                           <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
                             <input
                               type="checkbox"
@@ -364,8 +362,8 @@ export default function CoachTab({
                             />
                             Оплата наличными
                           </label>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

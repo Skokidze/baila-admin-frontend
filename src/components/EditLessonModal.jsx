@@ -51,44 +51,56 @@ export default function EditLessonModal({ initialData, students, onClose, onSave
 
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Ученик 1</label>
-              <select required value={formData.student_1} onChange={e => setFormData({...formData, student_1: e.target.value})} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-3 text-sm outline-none focus:border-black appearance-none">
-                <option value="" disabled>Выбрать</option>
-                {students.map(s => <option key={s.id} value={s.full_name}>{s.full_name}</option>)}
-              </select>
-              {formData.student_1 && (
-                <div className="pt-2">
-                  <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={formData.is_cash_1 || false}
-                      onChange={e => setFormData({...formData, is_cash_1: e.target.checked})}
-                      className="w-4 h-4 rounded text-black border-gray-300 focus:ring-black"
-                    />
-                    Оплата наличными
-                  </label>
-                </div>
-              )}
+              <div className="space-y-2">
+                <select 
+                  required 
+                  value={formData.student_1} 
+                  onChange={e => {
+                    const newStudent1 = e.target.value;
+                    // Если новый ученик 1 совпадает с учеником 2, очищаем ученика 2
+                    if (newStudent1 === formData.student_2) {
+                      setFormData({...formData, student_1: newStudent1, student_2: '', is_cash_2: false});
+                    } else {
+                      setFormData({ ...formData, student_1: newStudent1 });
+                    }
+                  }} 
+                  className="w-full bg-white border border-gray-200 rounded-xl px-3 py-3 text-sm outline-none focus:border-black appearance-none">
+                  <option value="" disabled>Выбрать</option>
+                  {students.map(s => <option key={s.id} value={s.full_name}>{s.full_name}</option>)}
+                </select>
+                {formData.student_1 && (
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={formData.is_cash_1 || false}
+                        onChange={e => setFormData({...formData, is_cash_1: e.target.checked})}
+                        className="w-4 h-4 rounded text-black border-gray-300 focus:ring-black"
+                      />
+                      Оплата наличными
+                    </label>
+                )}
+              </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase">Ученик 2 (Пара)</label>
-              <select value={formData.student_2} onChange={e => setFormData({...formData, student_2: e.target.value})} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-3 text-sm outline-none focus:border-black appearance-none">
-                <option value="">Нет (Соло)</option>
-                {students.filter(s => s.full_name !== formData.student_1).map(s => <option key={s.id} value={s.full_name}>{s.full_name}</option>)}
-              </select>
-              {formData.student_2 && (
-                <div className="pt-2">
-                  <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={formData.is_cash_2 || false}
-                      onChange={e => setFormData({...formData, is_cash_2: e.target.checked})}
-                      className="w-4 h-4 rounded text-black border-gray-300 focus:ring-black"
-                    />
-                    Оплата наличными
-                  </label>
-                </div>
-              )}
+              <div className="space-y-2">
+                <select value={formData.student_2} onChange={e => setFormData({...formData, student_2: e.target.value})} className="w-full bg-white border border-gray-200 rounded-xl px-3 py-3 text-sm outline-none focus:border-black appearance-none">
+                  <option value="">Нет (Соло)</option>
+                  {students.filter(s => s.full_name !== formData.student_1).map(s => <option key={s.id} value={s.full_name}>{s.full_name}</option>)}
+                </select>
+                {formData.student_2 && (
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={formData.is_cash_2 || false}
+                        onChange={e => setFormData({...formData, is_cash_2: e.target.checked})}
+                        className="w-4 h-4 rounded text-black border-gray-300 focus:ring-black"
+                      />
+                      Оплата наличными
+                    </label>
+                )}
+              </div>
             </div>
 
             <div className="pt-4">
