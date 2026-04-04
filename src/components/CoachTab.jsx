@@ -17,7 +17,9 @@ export default function CoachTab({
   handleBatchSubmit,
   addLessonRow,
   updateLessonRow,
-  removeLessonRow
+  removeLessonRow,
+  setShowAddCoachModal,
+  setEditingCoach
 }) {
   // Внутренние UI-стейты (перенесены из App.jsx)
   const [coachTab, setCoachTab] = useState('report'); 
@@ -50,6 +52,9 @@ export default function CoachTab({
       <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
         <button onClick={() => setCoachTab('report')} className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${coachTab === 'report' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>Отчеты</button>
         <button onClick={() => setCoachTab('add_lesson')} className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${coachTab === 'add_lesson' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>+ Добавить урок</button>
+        {userRole === 'admin' && (
+          <button onClick={() => setCoachTab('team')} className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${coachTab === 'team' ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>Команда</button>
+        )}
       </div>
 
       {coachTab === 'report' && (
@@ -188,6 +193,37 @@ export default function CoachTab({
 
                   </div>
                 )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {coachTab === 'team' && userRole === 'admin' && (
+        <div className="animate-fade-in space-y-4 pb-10">
+          <button 
+            onClick={() => setShowAddCoachModal(true)}
+            className="w-full bg-black text-white font-semibold text-[14px] py-3.5 px-4 rounded-xl hover:bg-gray-800 transition-colors shadow-sm active:scale-[0.98] flex items-center justify-center gap-2 mb-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+            Добавить сотрудника
+          </button>
+
+          <div className="space-y-3">
+            {coaches.map(coach => (
+              <div key={coach.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-gray-900">{coach.full_name}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">ID: {coach.telegram_id || 'Не привязан'}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`px-2.5 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${coach.role === 'admin' ? 'bg-purple-100 text-purple-700' : coach.role === 'manager' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                    {coach.role === 'admin' ? 'Админ' : coach.role === 'manager' ? 'Менеджер' : 'Тренер'}
+                  </span>
+                  <button onClick={() => setEditingCoach(coach)} className="text-gray-400 hover:text-blue-600 p-1.5 rounded-md hover:bg-blue-50 transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                  </button>
+                </div>
               </div>
             ))}
           </div>

@@ -7,7 +7,8 @@ export default function StudentList({
   endDate,
   setEndDate,
   userRole, // Новое: роль пользователя
-  setEditingStudent // Принимаем функцию открытия модалки
+  setEditingStudent, // Принимаем функцию открытия модалки
+  setShowAddStudentModal
 }) {
   // Эти стейты нужны только внутри списка учеников, поэтому мы убрали их из App.jsx
   const [studentFilter, setStudentFilter] = useState('debts'); 
@@ -29,6 +30,16 @@ export default function StudentList({
           <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full text-sm outline-none bg-transparent font-medium cursor-pointer"/>
         </div>
       </div>
+
+      {userRole === 'admin' && (
+        <button 
+          onClick={() => setShowAddStudentModal(true)}
+          className="w-full mb-6 bg-black text-white font-semibold text-[14px] py-3.5 px-4 rounded-xl hover:bg-gray-800 transition-colors shadow-sm active:scale-[0.98] flex items-center justify-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+          Добавить ученика
+        </button>
+      )}
 
       <div className="mb-6 space-y-3">
         <div className="relative">

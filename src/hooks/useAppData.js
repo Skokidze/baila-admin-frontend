@@ -40,7 +40,7 @@ export function useAppData(backendUrl) {
       return { loadedStudents, loadedCoaches };
     } catch (error) {
       console.error('Ошибка:', error);
-      setErrorMsg('Не удалось подключиться к бэкенду. Проверьте сервер.');
+    setErrorMsg(`Ошибка загрузки: ${error.message}`);
       return { error };
     } finally {
       setLoading(false);

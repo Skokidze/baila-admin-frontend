@@ -6,11 +6,12 @@ import StudentList from './components/StudentList';
 import CoachTab from './components/CoachTab';
 import MainTab from './components/MainTab';
 import AddCoachModal from './components/AddCoachModal';
+import EditCoachModal from './components/EditCoachModal';
 import { showAlert, showConfirm } from './utils/telegram';
 import { useAppData } from './hooks/useAppData';
 import { useBatchLessons } from './hooks/useBatchLessons';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://baila-api.onrender.com/api';
+const BACKEND_URL = import.meta.env.DEV ? 'http://localhost:3000/api' : 'https://baila-api.onrender.com/api';
 console.log('Текущий адрес бэкенда:', BACKEND_URL); // Добавим лог для проверки
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
   const [showAddStudentModal, setShowAddStudentModal] = useState(false); // Новый стейт для модалки добавления ученика
   const [showAddCoachModal, setShowAddCoachModal] = useState(false); // Стейт для модалки тренера
   const [editingStudent, setEditingStudent] = useState(null); // Стейт для модалки настроек ученика
+  const [editingCoach, setEditingCoach] = useState(null); // Стейт для модалки редактирования тренера
 
     // Стейт для скрытия меню при открытой клавиатуре
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -145,28 +147,28 @@ export default function App() {
 
   // Загрузка данных и проверка авторизации по базе данных
   useEffect(() => {
+    if (!currentUser) return;
+
     const loadAndAuthorize = async () => {
       const result = await fetchData();
       if (result?.loadedCoaches) {
-        if (currentUser) {
-          const myCoachProfile = result.loadedCoaches.find(c => Number(c.telegram_id) === Number(currentUser.id));
-          if (myCoachProfile) {
-            const dbRole = myCoachProfile.role || 'trainer';
-            setUserRole(dbRole);
-            
-            if (isAuthorized === null) {
-              setActiveTab(dbRole === 'admin' ? 'main' : 'coaches');
-            }
-            setIsAuthorized(true);
-          } else {
-            setIsAuthorized(false);
-          }
+        const myCoachProfile = result.loadedCoaches.find(c => Number(c.telegram_id) === Number(currentUser.id));
+        if (myCoachProfile) {
+          const dbRole = myCoachProfile.role || 'trainer';
+          setUserRole(dbRole);
+          
+          setIsAuthorized(prevAuth => {
+            if (prevAuth === null) setActiveTab(dbRole === 'admin' ? 'main' : 'coaches');
+            return true;
+          });
+        } else {
+          setIsAuthorized(false);
         }
       }
     };
 
     loadAndAuthorize();
-  }, [startDate, endDate, currentUser, isAuthorized, fetchData]);
+  }, [startDate, endDate, currentUser, fetchData]);
 
 
 
@@ -324,6 +326,43 @@ export default function App() {
     }
   };
 
+  const handleUpdateCoach = async (coachId, fullName, telegramId, role) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/coaches/${coachId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: fullName, telegram_id: telegramId, role })
+      });
+      if (response.ok) {
+        showAlert('Данные сотрудника обновлены!');
+        setEditingCoach(null);
+        fetchData();
+      } else {
+        const err = await response.json();
+        showAlert(`Ошибка: ${err.error}`);
+      }
+    } catch (error) {
+      console.error('Ошибка при обновлении тренера:', error);
+      showAlert('Ошибка при обновлении тренера');
+    }
+  };
+
+  const handleFireCoach = async (coachId, coachName) => {
+    showConfirm(`Вы уверены, что хотите уволить сотрудника ${coachName}? Он потеряет доступ к приложению.`, async (isConfirmed) => {
+      if (!isConfirmed) return;
+      try {
+        const response = await fetch(`${BACKEND_URL}/coaches/${coachId}`, { method: 'DELETE' });
+        if (response.ok) {
+          showAlert(`Сотрудник ${coachName} уволен.`);
+          setEditingCoach(null);
+          fetchData();
+        }
+      } catch (e) {
+        showAlert('Ошибка при увольнении');
+      }
+    });
+  };
+
   const handleDeleteStudent = async (studentId, studentName) => {
     showConfirm(`Вы уверены, что хотите убрать ученика ${studentName} в архив?`, async (isConfirmed) => {
       if (!isConfirmed) return;
@@ -385,7 +424,7 @@ export default function App() {
   };
 
   // --- ЭКРАНЫ ЗАГРУЗКИ ---
-  if (loading) return (
+  if (loading || (isAuthorized === null && !errorMsg)) return (
     <div className="flex h-screen items-center justify-center bg-[#fafafa]">
       <div className="text-sm font-medium text-gray-500 flex flex-col items-center gap-3">
         <div className="w-5 h-5 border-2 border-gray-300 border-t-black rounded-full animate-spin"></div>
@@ -401,6 +440,9 @@ export default function App() {
       </div>
       <div className="text-gray-900 font-semibold mb-2">Проблема с подключением</div>
       <p className="text-gray-500 text-sm mb-6 max-w-xs">{errorMsg}</p>
+      <div className="text-[10px] text-gray-500 bg-gray-200 p-3 rounded-lg w-full mb-6 break-all text-left font-mono">
+        DEBUG URL: {BACKEND_URL}
+      </div>
       <button onClick={fetchData} className="bg-black text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors">
         Попробовать снова
       </button>
@@ -445,6 +487,7 @@ export default function App() {
               setEndDate={setEndDate}
               userRole={userRole}
               setEditingStudent={setEditingStudent}
+              setShowAddStudentModal={setShowAddStudentModal}
             />
           </div>
         )}
@@ -472,6 +515,8 @@ export default function App() {
             addLessonRow={addLessonRow}
             updateLessonRow={updateLessonRow}
             removeLessonRow={removeLessonRow}
+            setShowAddCoachModal={setShowAddCoachModal}
+            setEditingCoach={setEditingCoach}
             isSubmitting={isSubmitting}
           />
         )}
@@ -483,8 +528,6 @@ export default function App() {
           <MainTab
             BACKEND_URL={BACKEND_URL}
             handlePayAllDebts={handlePayAllDebts}
-            setShowAddStudentModal={setShowAddStudentModal}
-            setShowAddCoachModal={setShowAddCoachModal}
           />
         )}
 
@@ -558,6 +601,16 @@ export default function App() {
         <AddCoachModal
           onClose={() => setShowAddCoachModal(false)}
           onSave={handleAddCoach}
+        />
+      )}
+
+      {/* Модальное окно редактирования тренера */}
+      {editingCoach && (
+        <EditCoachModal
+          coach={editingCoach}
+          onClose={() => setEditingCoach(null)}
+          onSave={handleUpdateCoach}
+          onFire={handleFireCoach}
         />
       )}
 
