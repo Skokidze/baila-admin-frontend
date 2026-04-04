@@ -310,12 +310,12 @@ export default function App() {
     }
   };
 
-  const handleAddCoach = async (fullName, googleName, telegramId, role) => {
+  const handleAddCoach = async (fullName, googleName, telegramId, role, isTrainer) => {
     try {
       const response = await fetch(`${BACKEND_URL}/coaches`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-school-id': String(schoolId) },
-        body: JSON.stringify({ full_name: fullName, google_name: googleName, telegram_id: telegramId, role })
+        body: JSON.stringify({ full_name: fullName, google_name: googleName, telegram_id: telegramId, role, is_trainer: isTrainer })
       });
       if (response.ok) {
         showAlert(`Тренер ${fullName} успешно добавлен!`);
@@ -331,12 +331,12 @@ export default function App() {
     }
   };
 
-  const handleUpdateCoach = async (coachId, fullName, telegramId, role) => {
+  const handleUpdateCoach = async (coachId, fullName, telegramId, role, isTrainer) => {
     try {
       const response = await fetch(`${BACKEND_URL}/coaches/${coachId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-school-id': String(schoolId) },
-        body: JSON.stringify({ full_name: fullName, telegram_id: telegramId, role })
+        body: JSON.stringify({ full_name: fullName, telegram_id: telegramId, role, is_trainer: isTrainer })
       });
       if (response.ok) {
         showAlert('Данные сотрудника обновлены!');

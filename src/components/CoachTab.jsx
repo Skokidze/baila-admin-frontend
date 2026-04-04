@@ -77,7 +77,9 @@ export default function CoachTab({
               <button onClick={() => setSelectedCoaches([])} className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${selectedCoaches.length === 0 ? 'bg-black text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
                 Все
               </button>
-              {coaches.map(coach => (
+            {coaches
+              .filter(coach => coach.is_trainer || (coach.lessons && coach.lessons.length > 0) || (coach.payouts && coach.payouts.length > 0))
+              .map(coach => (
                 <button key={coach.id} onClick={() => toggleCoachFilter(coach.full_name)} className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors ${selectedCoaches.includes(coach.full_name) ? 'bg-black text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}>
                   {coach.google_name || coach.full_name}
                 </button>
@@ -85,10 +87,11 @@ export default function CoachTab({
             </div>
           )}
 
-          {['admin', 'manager'].includes(userRole) && coaches.length === 0 && <p className="text-gray-400 text-sm text-center mt-10">В этом периоде нет записей</p>}
+        {['admin', 'manager'].includes(userRole) && coaches.filter(c => c.is_trainer || (c.lessons && c.lessons.length > 0) || (c.payouts && c.payouts.length > 0)).length === 0 && <p className="text-gray-400 text-sm text-center mt-10">В этом периоде нет записей</p>}
 
           <div className="space-y-4">
             {coaches
+            .filter(coach => coach.is_trainer || (coach.lessons && coach.lessons.length > 0) || (coach.payouts && coach.payouts.length > 0))
               .filter(c => {
                 if (['admin', 'manager'].includes(userRole)) {
                   return selectedCoaches.length === 0 || selectedCoaches.includes(c.full_name);
@@ -255,8 +258,9 @@ export default function CoachTab({
 
                   {trainerSearchOpen && ['admin', 'manager'].includes(userRole) && (
                     <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto animate-fade-in">
-                      {coaches.filter(c => (c.google_name || c.full_name).toLowerCase().includes(batchForm.trainer.toLowerCase())).length > 0 ? (
+                      {coaches.filter(c => c.is_trainer || (c.lessons && c.lessons.length > 0)).filter(c => (c.google_name || c.full_name).toLowerCase().includes(batchForm.trainer.toLowerCase())).length > 0 ? (
                         coaches
+                          .filter(c => c.is_trainer || (c.lessons && c.lessons.length > 0))
                           .filter(c => (c.google_name || c.full_name).toLowerCase().includes(batchForm.trainer.toLowerCase()))
                           .map(coach => {
                             const displayName = coach.google_name || coach.full_name;

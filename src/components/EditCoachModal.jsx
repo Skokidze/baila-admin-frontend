@@ -5,11 +5,12 @@ export default function EditCoachModal({ coach, onClose, onSave, onFire }) {
   const [fullName, setFullName] = useState(coach.full_name);
   const [telegramId, setTelegramId] = useState(coach.telegram_id || '');
   const [role, setRole] = useState(coach.role || 'trainer');
+  const [isTrainer, setIsTrainer] = useState(coach.is_trainer !== false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (fullName.trim()) {
-      onSave(coach.id, fullName.trim(), telegramId ? Number(telegramId) : null, role);
+      onSave(coach.id, fullName.trim(), telegramId ? Number(telegramId) : null, role, isTrainer);
     }
   };
 
@@ -64,6 +65,13 @@ export default function EditCoachModal({ coach, onClose, onSave, onFire }) {
                 </label>
               </div>
             </div>
+          
+          <div className="pt-2 border-t border-gray-100">
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input type="checkbox" checked={isTrainer} onChange={(e) => setIsTrainer(e.target.checked)} className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black" />
+              Проводит уроки (показывать в списках тренеров)
+            </label>
+          </div>
             
             <div className="pt-2">
               <button type="submit" className="w-full bg-black text-white font-semibold text-base py-3.5 rounded-xl hover:bg-gray-800 transition-colors shadow-sm active:scale-[0.98]">

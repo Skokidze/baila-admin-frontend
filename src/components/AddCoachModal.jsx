@@ -5,6 +5,7 @@ export default function AddCoachModal({ onClose, onSave }) {
   const [lastName, setLastName] = useState('');
   const [telegramId, setTelegramId] = useState('');
   const [role, setRole] = useState('trainer');
+  const [isTrainer, setIsTrainer] = useState(true);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -12,7 +13,7 @@ export default function AddCoachModal({ onClose, onSave }) {
       const fullName = `${firstName.trim()} ${lastName.trim()}`;
       const googleName = lastName.trim();
       // Передаем собранные данные
-      onSave(fullName, googleName, telegramId.trim() ? Number(telegramId.trim()) : null, role);
+      onSave(fullName, googleName, telegramId.trim() ? Number(telegramId.trim()) : null, role, isTrainer);
     }
   };
 
