@@ -127,8 +127,22 @@ export default function CoachTab({
                       </div>
                     )}
 
-                    {coach.lessons && coach.lessons.length > 0 && (
+                    {coach.payouts && coach.payouts.length > 0 && (
                       <div className="mb-4">
+                        <p className="text-[11px] font-semibold text-gray-400 mb-2 uppercase tracking-widest">История выплат</p>
+                        <div className="space-y-2">
+                          {coach.payouts.map((payout, idx) => (
+                            <div key={idx} className="flex justify-between items-center text-sm bg-white p-2.5 rounded-lg border border-gray-200 shadow-sm">
+                              <p className="font-medium text-gray-800">{new Date(payout.date).toLocaleDateString('ru-RU')}</p>
+                              <span className="font-semibold text-gray-500">-{payout.amount} ₽</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {coach.lessons && coach.lessons.length > 0 && (
+                      <div>
                         <p className="text-[11px] font-semibold text-gray-400 mb-2 uppercase tracking-widest">Проведенные занятия ({coach.lessons.length})</p>
                         <div className="space-y-2">
                           {coach.lessons
@@ -172,19 +186,6 @@ export default function CoachTab({
                       </div>
                     )}
 
-                    {coach.payouts && coach.payouts.length > 0 && (
-                      <div>
-                        <p className="text-[11px] font-semibold text-gray-400 mb-2 uppercase tracking-widest">История выплат</p>
-                        <div className="space-y-2">
-                          {coach.payouts.map((payout, idx) => (
-                            <div key={idx} className="flex justify-between items-center text-sm bg-white p-2.5 rounded-lg border border-gray-200 shadow-sm">
-                              <p className="font-medium text-gray-800">{new Date(payout.date).toLocaleDateString('ru-RU')}</p>
-                              <span className="font-semibold text-gray-500">-{payout.amount} ₽</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>

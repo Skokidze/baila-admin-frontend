@@ -9,10 +9,8 @@ import { showAlert, showConfirm } from './utils/telegram';
 import { useAppData } from './hooks/useAppData';
 import { useBatchLessons } from './hooks/useBatchLessons';
 
-// Если переменная окружения пустая, принудительно используем Render, а не localhost
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL && import.meta.env.VITE_BACKEND_URL !== 'http://localhost:3000/api' ? import.meta.env.VITE_BACKEND_URL : 'https://baila-api.onrender.com/api';
-const ADMIN_ID = Number(import.meta.env.VITE_ADMIN_ID) || 474108242;
-const MANAGER_ID = Number(import.meta.env.VITE_MANAGER_ID) || 83064944470;
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://baila-api.onrender.com/api';
+console.log('Текущий адрес бэкенда:', BACKEND_URL); // Добавим лог для проверки
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -37,9 +35,16 @@ export default function App() {
     // Разбиваем строку учеников (например "Степан, Вова")
     const studentsArr = lesson.students ? lesson.students.split(', ') : [];
     
+    // Форматируем дату в YYYY-MM-DD для поля <input type="date">
+    let formattedDate = '';
+    if (lesson.date) {
+      const d = new Date(lesson.date);
+      formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
     setEditingLesson({
       id: lesson.id,
-      date: lesson.date,
+      date: formattedDate,
       student_1: studentsArr[0] || '',
       student_2: studentsArr[1] || '',
       duration: lesson.duration || '45',
@@ -128,34 +133,29 @@ export default function App() {
       tg.expand();
       
       setCurrentUser(user);
-      if (Number(user.id) === Number(ADMIN_ID)) {
-        setUserRole('admin');
-      } else if (Number(user.id) === Number(MANAGER_ID)) {
-        setUserRole('manager');
-        setActiveTab('coaches'); // Менеджера сразу кидаем на вкладку отчетов
-      }
     } else {
       // --- РЕЖИМ ОТЛАДКИ В БРАУЗЕРЕ ---
-      console.log('Запуск вне Telegram: включен режим отладки (Админ)');
-      setUserRole('admin');
-      setCurrentUser({ id: ADMIN_ID, first_name: 'Admin' });
-      setIsAuthorized(true);
+      console.log('Запуск вне Telegram: включен режим отладки');
+      // ВПИШИТЕ СЮДА ВАШ TELEGRAM ID ДЛЯ ТЕСТИРОВАНИЯ РОЛЕЙ:
+      setCurrentUser({ id: '474108242', first_name: 'DebugUser' });
     }
   }, []);
 
-  // Загрузка данных и строгая проверка авторизации
+  // Загрузка данных и проверка авторизации по базе данных
   useEffect(() => {
     const loadAndAuthorize = async () => {
       const result = await fetchData();
       if (result?.loadedCoaches) {
-        if (userRole === 'admin' || userRole === 'manager') {
-          setIsAuthorized(true);
-        } else if (currentUser) {
+        if (currentUser) {
           const myCoachProfile = result.loadedCoaches.find(c => Number(c.telegram_id) === Number(currentUser.id));
           if (myCoachProfile) {
+            const dbRole = myCoachProfile.role || 'trainer';
+            setUserRole(dbRole);
+            
+            if (isAuthorized === null) {
+              setActiveTab(dbRole === 'admin' ? 'main' : 'coaches');
+            }
             setIsAuthorized(true);
-            setUserRole('trainer');
-            setActiveTab('coaches');
           } else {
             setIsAuthorized(false);
           }
@@ -164,7 +164,7 @@ export default function App() {
     };
 
     loadAndAuthorize();
-  }, [startDate, endDate, currentUser, userRole, fetchData]);
+  }, [startDate, endDate, currentUser, isAuthorized, fetchData]);
 
 
 
