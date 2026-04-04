@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-export function useAppData(backendUrl) {
+export function useAppData(backendUrl, schoolId) {
   const [students, setStudents] = useState([]);
   const [coaches, setCoaches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,12 +21,13 @@ export function useAppData(backendUrl) {
   const [endDate, setEndDate] = useState(formatDateLocal(lastDay));
 
   const fetchData = useCallback(async () => {
+    if (!schoolId) return { loadedStudents: [], loadedCoaches: [] }; // Не загружаем, пока не узнаем школу
     setLoading(true);
     setErrorMsg('');
     try {
       const [studentsRes, coachesRes] = await Promise.all([
-        fetch(`${backendUrl}/students?start=${startDate}&end=${endDate}`),
-        fetch(`${backendUrl}/coaches?start=${startDate}&end=${endDate}`)
+        fetch(`${backendUrl}/students?start=${startDate}&end=${endDate}`, { headers: { 'x-school-id': String(schoolId) } }),
+        fetch(`${backendUrl}/coaches?start=${startDate}&end=${endDate}`, { headers: { 'x-school-id': String(schoolId) } })
       ]);
       
       if (!studentsRes.ok || !coachesRes.ok) {
@@ -49,7 +50,7 @@ export function useAppData(backendUrl) {
     } finally {
       setLoading(false);
     }
-  }, [backendUrl, startDate, endDate]);
+  }, [backendUrl, schoolId, startDate, endDate]);
 
   return { students, coaches, loading, errorMsg, startDate, setStartDate, endDate, setEndDate, fetchData };
 }

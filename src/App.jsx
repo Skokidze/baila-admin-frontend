@@ -17,6 +17,7 @@ console.log('Текущий адрес бэкенда:', BACKEND_URL); // Доб
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [userRole, setUserRole] = useState('trainer'); // 'admin' или 'trainer'
+  const [schoolId, setSchoolId] = useState(null); // НОВЫЙ СТЕЙТ: ID школы
 
   // НОВЫЙ СТЕЙТ
   const [isAuthorized, setIsAuthorized] = useState(null); // null = проверка, true = можно, false = нельзя
@@ -68,7 +69,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/lessons/${updatedData.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-school-id': String(schoolId) },
         body: JSON.stringify({
           lesson_date: updatedData.date,
           student_1: updatedData.student_1,
@@ -102,10 +103,10 @@ export default function App() {
     students, coaches, loading, errorMsg,
     startDate, setStartDate, endDate, setEndDate,
     fetchData
-  } = useAppData(BACKEND_URL);
+  } = useAppData(BACKEND_URL, schoolId);
 
   // Хук для управления формой пакетного добавления уроков
-  const { batchForm, setBatchForm, addLessonRow, updateLessonRow, removeLessonRow, handleBatchSubmit, isSubmitting } = useBatchLessons(BACKEND_URL, students, coaches, currentUser, userRole, fetchData);
+  const { batchForm, setBatchForm, addLessonRow, updateLessonRow, removeLessonRow, handleBatchSubmit, isSubmitting } = useBatchLessons(BACKEND_URL, schoolId, students, coaches, currentUser, userRole, fetchData);
 
 
     useEffect(() => {
@@ -149,26 +150,26 @@ export default function App() {
   useEffect(() => {
     if (!currentUser) return;
 
-    const loadAndAuthorize = async () => {
-      const result = await fetchData();
-      if (result?.loadedCoaches) {
-        const myCoachProfile = result.loadedCoaches.find(c => Number(c.telegram_id) === Number(currentUser.id));
-        if (myCoachProfile) {
-          const dbRole = myCoachProfile.role || 'trainer';
-          setUserRole(dbRole);
-          
-          setIsAuthorized(prevAuth => {
-            if (prevAuth === null) setActiveTab(dbRole === 'admin' ? 'main' : 'coaches');
-            return true;
-          });
+    const authUser = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/auth/telegram/${currentUser.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setSchoolId(data.user.school_id);
+          setUserRole(data.user.role || 'trainer');
+          setActiveTab(data.user.role === 'admin' ? 'main' : 'coaches');
+          setIsAuthorized(true);
         } else {
           setIsAuthorized(false);
         }
+      } catch (error) {
+        console.error('Ошибка авторизации:', error);
+        setIsAuthorized(false);
       }
     };
 
-    loadAndAuthorize();
-  }, [startDate, endDate, currentUser, fetchData]);
+    authUser();
+  }, [currentUser]);
 
 
 
@@ -185,7 +186,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/coaches/${id}/pay`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-school-id': String(schoolId) },
         body: JSON.stringify({ amount, date: dateStr })
       });
       if (response.ok) {
@@ -206,7 +207,7 @@ export default function App() {
       try {
         const response = await fetch(`${BACKEND_URL}/students/${id}/topup`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-school-id': String(schoolId) },
           body: JSON.stringify({ amount })
         });
         if (response.ok) {
@@ -229,7 +230,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/students/${id}/balance`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-school-id': String(schoolId) },
         body: JSON.stringify({ balance: amount })
       });
       if (response.ok) {
@@ -247,7 +248,8 @@ export default function App() {
       if (!isConfirmed) return;
       try {
         const response = await fetch(`${BACKEND_URL}/pay-unpaid-lessons`, {
-          method: 'POST'
+          method: 'POST',
+          headers: { 'x-school-id': String(schoolId) }
         });
         if (response.ok) {
           showAlert('Балансы успешно обновлены!');
@@ -269,7 +271,10 @@ export default function App() {
     showConfirm('Вы уверены, что хотите удалить этот урок? Это действие нельзя отменить.', async (isConfirmed) => {
       if (!isConfirmed) return;
       try {
-        const response = await fetch(`${BACKEND_URL}/lessons/${lessonId}`, { method: 'DELETE' });
+        const response = await fetch(`${BACKEND_URL}/lessons/${lessonId}`, { 
+          method: 'DELETE',
+          headers: { 'x-school-id': String(schoolId) }
+        });
         if (response.ok) {
           fetchData();
         } else {
@@ -288,7 +293,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/students`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-school-id': String(schoolId) },
         body: JSON.stringify({ full_name: fullName, google_name: googleName, account_number: accountNumber })
       });
       if (response.ok) {
@@ -309,7 +314,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/coaches`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-school-id': String(schoolId) },
         body: JSON.stringify({ full_name: fullName, google_name: googleName, telegram_id: telegramId, role })
       });
       if (response.ok) {
@@ -330,7 +335,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/coaches/${coachId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-school-id': String(schoolId) },
         body: JSON.stringify({ full_name: fullName, telegram_id: telegramId, role })
       });
       if (response.ok) {
@@ -351,7 +356,10 @@ export default function App() {
     showConfirm(`Вы уверены, что хотите уволить сотрудника ${coachName}? Он потеряет доступ к приложению.`, async (isConfirmed) => {
       if (!isConfirmed) return;
       try {
-        const response = await fetch(`${BACKEND_URL}/coaches/${coachId}`, { method: 'DELETE' });
+        const response = await fetch(`${BACKEND_URL}/coaches/${coachId}`, { 
+          method: 'DELETE',
+          headers: { 'x-school-id': String(schoolId) }
+        });
         if (response.ok) {
           showAlert(`Сотрудник ${coachName} уволен.`);
           setEditingCoach(null);
@@ -367,7 +375,10 @@ export default function App() {
     showConfirm(`Вы уверены, что хотите убрать ученика ${studentName} в архив?`, async (isConfirmed) => {
       if (!isConfirmed) return;
       try {
-        const response = await fetch(`${BACKEND_URL}/students/${studentId}`, { method: 'DELETE' });
+        const response = await fetch(`${BACKEND_URL}/students/${studentId}`, { 
+          method: 'DELETE',
+          headers: { 'x-school-id': String(schoolId) }
+        });
         const data = await response.json();
         if (response.ok) {
           showAlert(data.message || `Ученик ${studentName} убран в архив.`);
@@ -387,7 +398,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/students/${studentId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-school-id': String(schoolId) },
         body: JSON.stringify({ full_name: newName })
       });
       if (response.ok) {
@@ -408,7 +419,7 @@ export default function App() {
     try {
       const response = await fetch(`${BACKEND_URL}/students/${studentId}/accounts`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-school-id': String(schoolId) },
         body: JSON.stringify({ account_number: accountNumber })
       });
       if (response.ok) {
@@ -527,6 +538,7 @@ export default function App() {
         {activeTab === 'main' && userRole === 'admin' && (
           <MainTab
             BACKEND_URL={BACKEND_URL}
+            schoolId={schoolId}
             handlePayAllDebts={handlePayAllDebts}
           />
         )}

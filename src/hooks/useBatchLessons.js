@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { showAlert } from '../utils/telegram';
 
-export function useBatchLessons(BACKEND_URL, students, coaches, currentUser, userRole, fetchData) {
+export function useBatchLessons(BACKEND_URL, schoolId, students, coaches, currentUser, userRole, fetchData) {
   // Определяем тренера по умолчанию (пусто для админа/менеджера, автоподстановка для тренера)
   const getInitialTrainer = () => {
     if (['admin', 'manager'].includes(userRole)) return '';
@@ -76,7 +76,7 @@ export function useBatchLessons(BACKEND_URL, students, coaches, currentUser, use
     try {
       const response = await fetch(`${BACKEND_URL}/lessons/batch`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-school-id': String(schoolId) },
         body: JSON.stringify({
           trainer: batchForm.trainer,
           lesson_date: batchForm.lesson_date,

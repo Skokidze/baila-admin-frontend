@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useFinance } from '../hooks/useFinance';
 
-export default function MainTab({ BACKEND_URL, handlePayAllDebts }) {
+export default function MainTab({ BACKEND_URL, schoolId, handlePayAllDebts }) {
   // Локальные стейты для дат вкладки "Финансы" (по умолчанию текущий месяц)
   const [financeStartDate, setFinanceStartDate] = useState(() => {
     const d = new Date();
@@ -14,7 +14,7 @@ export default function MainTab({ BACKEND_URL, handlePayAllDebts }) {
     return `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, '0')}-${String(lastDay.getDate()).padStart(2, '0')}`;
   });
 
-  const { financeData, loading, error } = useFinance(BACKEND_URL, financeStartDate, financeEndDate);
+  const { financeData, loading, error } = useFinance(BACKEND_URL, schoolId, financeStartDate, financeEndDate);
   const [activeSubTab, setActiveSubTab] = useState('management'); // 'management' или 'finance'
 
   return (
