@@ -71,6 +71,14 @@ export default function AddCoachModal({ onClose, onSave }) {
               </label>
             </div>
           </div>
+
+          <div className="pt-2 border-t border-gray-100">
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input type="checkbox" checked={isTrainer} onChange={(e) => setIsTrainer(e.target.checked)} className="w-4 h-4 text-black border-gray-300 rounded focus:ring-black" />
+              Проводит уроки (показывать в списках тренеров)
+            </label>
+          </div>
+
           <div className="flex justify-end space-x-3 pt-2">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Отмена</button>
             <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800">Добавить</button>
