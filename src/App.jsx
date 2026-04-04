@@ -5,6 +5,7 @@ import EditStudentModal from './components/EditStudentModal';
 import StudentList from './components/StudentList';
 import CoachTab from './components/CoachTab';
 import MainTab from './components/MainTab';
+import AddCoachModal from './components/AddCoachModal';
 import { showAlert, showConfirm } from './utils/telegram';
 import { useAppData } from './hooks/useAppData';
 import { useBatchLessons } from './hooks/useBatchLessons';
@@ -21,6 +22,7 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState('main');
   const [showAddStudentModal, setShowAddStudentModal] = useState(false); // Новый стейт для модалки добавления ученика
+  const [showAddCoachModal, setShowAddCoachModal] = useState(false); // Стейт для модалки тренера
   const [editingStudent, setEditingStudent] = useState(null); // Стейт для модалки настроек ученика
 
     // Стейт для скрытия меню при открытой клавиатуре
@@ -301,6 +303,27 @@ export default function App() {
     }
   };
 
+  const handleAddCoach = async (fullName, googleName, telegramId, role) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/coaches`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: fullName, google_name: googleName, telegram_id: telegramId, role })
+      });
+      if (response.ok) {
+        showAlert(`Тренер ${fullName} успешно добавлен!`);
+        setShowAddCoachModal(false);
+        fetchData(); // Обновляем список тренеров
+      } else {
+        const err = await response.json();
+        showAlert(`Ошибка: ${err.error}`);
+      }
+    } catch (error) {
+      console.error('Ошибка при добавлении тренера:', error);
+      showAlert('Ошибка при добавлении тренера');
+    }
+  };
+
   const handleDeleteStudent = async (studentId, studentName) => {
     showConfirm(`Вы уверены, что хотите убрать ученика ${studentName} в архив?`, async (isConfirmed) => {
       if (!isConfirmed) return;
@@ -461,6 +484,7 @@ export default function App() {
             BACKEND_URL={BACKEND_URL}
             handlePayAllDebts={handlePayAllDebts}
             setShowAddStudentModal={setShowAddStudentModal}
+            setShowAddCoachModal={setShowAddCoachModal}
           />
         )}
 
@@ -526,6 +550,14 @@ export default function App() {
         <AddStudentModal
           onClose={() => setShowAddStudentModal(false)}
           onSave={handleAddStudent}
+        />
+      )}
+
+      {/* Модальное окно добавления тренера */}
+      {showAddCoachModal && (
+        <AddCoachModal
+          onClose={() => setShowAddCoachModal(false)}
+          onSave={handleAddCoach}
         />
       )}
 
