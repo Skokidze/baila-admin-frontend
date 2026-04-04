@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect } from 'react';
 export function useAppData(backendUrl, schoolId) {
   const [students, setStudents] = useState([]);
   const [coaches, setCoaches] = useState([]);
-  const [loading, setLoading] = useState(false); // Убираем вечную загрузку до получения school_id
+  const [loading, setLoading] = useState(true); // Возвращаем true, чтобы не было моргания
   const [errorMsg, setErrorMsg] = useState('');
 
   const today = new Date();

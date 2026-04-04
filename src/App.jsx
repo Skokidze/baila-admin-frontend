@@ -434,16 +434,6 @@ export default function App() {
     }
   };
 
-  // --- ЭКРАНЫ ЗАГРУЗКИ ---
-  if (loading || (isAuthorized === null && !errorMsg)) return (
-    <div className="flex h-screen items-center justify-center bg-[#fafafa]">
-      <div className="text-sm font-medium text-gray-500 flex flex-col items-center gap-3">
-        <div className="w-5 h-5 border-2 border-gray-300 border-t-black rounded-full animate-spin"></div>
-        Загрузка...
-      </div>
-    </div>
-  );
-
   if (errorMsg) return (
     <div className="flex h-screen flex-col items-center justify-center bg-[#fafafa] p-6 text-center">
       <div className="w-12 h-12 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-4">
@@ -460,8 +450,8 @@ export default function App() {
     </div>
   );
 
-    // --- ЭКРАН ОТКАЗА В ДОСТУПЕ ---
-  if (isAuthorized === false) return (
+  // --- ЭКРАН ОТКАЗА В ДОСТУПЕ ---
+  if (isAuthorized === false && !errorMsg) return (
     <div className="flex h-screen flex-col items-center justify-center bg-[#fafafa] p-6 text-center">
       <div className="w-16 h-16 bg-gray-200 text-gray-400 rounded-full flex items-center justify-center mb-6">
         <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -477,6 +467,16 @@ export default function App() {
           Ваш ID: <span className="font-mono font-bold text-gray-800">{currentUser.id}</span>
         </div>
       )}
+    </div>
+  );
+
+  // --- ЭКРАНЫ ЗАГРУЗКИ ---
+  if (loading || isAuthorized === null) return (
+    <div className="flex h-screen items-center justify-center bg-[#fafafa]">
+      <div className="text-sm font-medium text-gray-500 flex flex-col items-center gap-3">
+        <div className="w-5 h-5 border-2 border-gray-300 border-t-black rounded-full animate-spin"></div>
+        Загрузка...
+      </div>
     </div>
   );
 
