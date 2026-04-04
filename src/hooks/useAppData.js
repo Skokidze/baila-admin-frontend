@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 export function useAppData(backendUrl, schoolId) {
   const [students, setStudents] = useState([]);
   const [coaches, setCoaches] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Убираем вечную загрузку до получения school_id
   const [errorMsg, setErrorMsg] = useState('');
 
   const today = new Date();
@@ -51,6 +51,13 @@ export function useAppData(backendUrl, schoolId) {
       setLoading(false);
     }
   }, [backendUrl, schoolId, startDate, endDate]);
+
+  // АВТОМАТИЧЕСКИ загружаем данные, как только узнали школу или поменяли даты
+  useEffect(() => {
+    if (schoolId) {
+      fetchData();
+    }
+  }, [fetchData, schoolId]);
 
   return { students, coaches, loading, errorMsg, startDate, setStartDate, endDate, setEndDate, fetchData };
 }
