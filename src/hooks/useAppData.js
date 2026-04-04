@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 export function useAppData(backendUrl, schoolId) {
   const [students, setStudents] = useState([]);
