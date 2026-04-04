@@ -7,6 +7,7 @@ import CoachTab from './components/CoachTab';
 import MainTab from './components/MainTab';
 import AddCoachModal from './components/AddCoachModal';
 import EditCoachModal from './components/EditCoachModal';
+import TariffsModal from './components/TariffsModal';
 import { showAlert, showConfirm } from './utils/telegram';
 import { useAppData } from './hooks/useAppData';
 import { useBatchLessons } from './hooks/useBatchLessons';
@@ -27,6 +28,7 @@ export default function App() {
   const [showAddCoachModal, setShowAddCoachModal] = useState(false); // Стейт для модалки тренера
   const [editingStudent, setEditingStudent] = useState(null); // Стейт для модалки настроек ученика
   const [editingCoach, setEditingCoach] = useState(null); // Стейт для модалки редактирования тренера
+  const [showTariffsModal, setShowTariffsModal] = useState(false); // Стейт для модалки тарифов
 
     // Стейт для скрытия меню при открытой клавиатуре
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
@@ -540,6 +542,7 @@ export default function App() {
             BACKEND_URL={BACKEND_URL}
             schoolId={schoolId}
             handlePayAllDebts={handlePayAllDebts}
+            setShowTariffsModal={setShowTariffsModal}
           />
         )}
 
@@ -623,6 +626,16 @@ export default function App() {
           onClose={() => setEditingCoach(null)}
           onSave={handleUpdateCoach}
           onFire={handleFireCoach}
+        />
+      )}
+
+      {/* Модальное окно тарифов */}
+      {showTariffsModal && (
+        <TariffsModal
+          coaches={coaches}
+          onClose={() => setShowTariffsModal(false)}
+          BACKEND_URL={BACKEND_URL}
+          schoolId={schoolId}
         />
       )}
 
