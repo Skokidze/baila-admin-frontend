@@ -29,7 +29,11 @@ export function useAppData(backendUrl) {
         fetch(`${backendUrl}/coaches?start=${startDate}&end=${endDate}`)
       ]);
       
-      if (!studentsRes.ok || !coachesRes.ok) throw new Error('Ошибка сервера');
+      if (!studentsRes.ok || !coachesRes.ok) {
+        const sErr = await studentsRes.text().catch(()=>'');
+        const cErr = await coachesRes.text().catch(()=>'');
+        throw new Error(`HTTP ${studentsRes.status}/${coachesRes.status}. Ошибка БД: ${sErr.substring(0,80)} ${cErr.substring(0,80)}`);
+      }
       
       const loadedStudents = await studentsRes.json();
       const loadedCoaches = await coachesRes.json();
