@@ -587,6 +587,7 @@ export default function App() {
           students={students}
           onClose={() => setEditingLesson(null)}
           onSave={handleSaveEditLesson}
+          userRole={userRole}
         />
       )}
       

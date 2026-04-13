@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 
-export default function EditLessonModal({ initialData, students, onClose, onSave }) {
+export default function EditLessonModal({ initialData, students, onClose, onSave, userRole }) {
   // Локальное состояние формы, чтобы не перерендеривать App.jsx при каждом нажатии клавиши
   const [formData, setFormData] = useState(initialData);
 
@@ -68,7 +68,7 @@ export default function EditLessonModal({ initialData, students, onClose, onSave
                   <option value="" disabled>Выбрать</option>
                   {students.map(s => <option key={s.id} value={s.full_name}>{s.full_name}</option>)}
                 </select>
-                {formData.student_1 && (
+            {formData.student_1 && userRole === 'admin' && (
                     <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
                       <input
                         type="checkbox"
@@ -89,7 +89,7 @@ export default function EditLessonModal({ initialData, students, onClose, onSave
                   <option value="">Нет (Соло)</option>
                   {students.filter(s => s.full_name !== formData.student_1).map(s => <option key={s.id} value={s.full_name}>{s.full_name}</option>)}
                 </select>
-                {formData.student_2 && (
+            {formData.student_2 && userRole === 'admin' && (
                     <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
                       <input
                         type="checkbox"

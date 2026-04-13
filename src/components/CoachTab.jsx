@@ -353,7 +353,7 @@ export default function CoachTab({
                             </div>
                           )}
                         </div>
-                        {row.student_1 && (
+                        {row.student_1 && userRole === 'admin' && (
                           <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
                             <input
                               type="checkbox"
@@ -393,7 +393,7 @@ export default function CoachTab({
                             </div>
                           )}
                         </div>
-                        {row.student_2 && (
+                        {row.student_2 && userRole === 'admin' && (
                           <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
                             <input
                               type="checkbox"

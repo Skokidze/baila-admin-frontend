@@ -67,7 +67,9 @@ export function useBatchLessons(BACKEND_URL, schoolId, students, coaches, curren
       return {
         ...row,
         student_1_id: st1Obj ? st1Obj.id : null,
-        student_2_id: st2Obj ? st2Obj.id : null
+        student_2_id: st2Obj ? st2Obj.id : null,
+        is_cash_1: userRole === 'admin' ? row.is_cash_1 : false,
+        is_cash_2: userRole === 'admin' ? row.is_cash_2 : false
       };
     });
 
