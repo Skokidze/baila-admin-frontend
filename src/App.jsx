@@ -488,9 +488,9 @@ export default function App() {
       <div className="max-w-md mx-auto px-5 py-6 space-y-6">
         
         {/* ========================================== */}
-        {/* ВКЛАДКА УЧЕНИКОВ (ТОЛЬКО ДЛЯ АДМИНА) */}
+        {/* ВКЛАДКА УЧЕНИКОВ (ДЛЯ АДМИНА И МЕНЕДЖЕРА) */}
         {/* ========================================== */}
-        {activeTab === 'students' && userRole === 'admin' && (
+        {activeTab === 'students' && ['admin', 'manager'].includes(userRole) && (
           <div className="space-y-4">
             <StudentList
               students={students}
@@ -561,7 +561,7 @@ export default function App() {
                 Главная
               </button>
             )}
-            {userRole === 'admin' && (
+            {['admin', 'manager'].includes(userRole) && (
               <button 
                 className={`flex-1 py-2 text-sm font-medium rounded-full transition-colors ${activeTab === 'students' ? 'bg-gray-100 text-black' : 'text-gray-500 hover:text-gray-800'}`} 
                 onClick={() => setActiveTab('students')}
